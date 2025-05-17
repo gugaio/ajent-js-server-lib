@@ -1,7 +1,7 @@
 const { OpenAIClient } = require('./openai');
 
 class LLMFactory {
-  static createClient(llmName, llmToken = 'sk-...') {
+  static createClient(llmName, llmToken) {
     const switcher = {
       'openai': new OpenAIClient(llmToken)
     };
