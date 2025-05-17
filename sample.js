@@ -1,5 +1,4 @@
 const { createApiServer } = require('./lib');
-
 // Create an API server with custom options
 const api = createApiServer({
   port: 3001,
