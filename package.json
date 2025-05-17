@@ -1,7 +1,7 @@
 {
-  "name": "ajent-js-server-lib",
-  "version": "1.0.0",
-  "description": "Library to LLM function calling",
+  "name": "ajent-api",
+  "version": "1.0.1",
+  "description": "Library to create a LLM Api with function calling",
   "main": "lib/index.js",
   "scripts": {
     "test": "jest",
