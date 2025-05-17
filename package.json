@@ -6,7 +6,6 @@
   "exports": {
     ".": "./lib/index.js"
   },
-  "type": "module",
   "scripts": {
     "test": "jest",
     "lint": "eslint lib/**/*.js",

@@ -9,15 +9,17 @@ export default defineConfig([
     extends: ["js/recommended"],
   },
   {
-    files: ["**/*.cjs"],
-    languageOptions: { sourceType: "commonjs" },
+    files: ["**/*.{js,cjs}"],  // Include .js files here
+    languageOptions: { 
+      sourceType: "commonjs",
+      globals: globals.node  // Add Node.js globals which include 'require' and 'module'
+    },
   },
   {
-    files: ["**/*.{js,mjs}"],
-    languageOptions: { sourceType: "module" },
-  },
-  {
-    files: ["**/*.{js,mjs,cjs}"],
-    languageOptions: { globals: globals.browser },
+    files: ["**/*.mjs"],  // Only .mjs files as modules
+    languageOptions: { 
+      sourceType: "module",
+      globals: globals.browser
+    },
   },
 ]);
