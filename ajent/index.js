@@ -1,7 +1,4 @@
-const { LLMClient } = require('./llm-client');
-const { LLMFactory } = require('./llm-factory');
+import { LLMClient } from './llm-client';
+import { LLMFactory } from './llm-factory';
 
-module.exports = {
-  LLMClient,
-  LLMFactory
-};
+export { LLMClient, LLMFactory };

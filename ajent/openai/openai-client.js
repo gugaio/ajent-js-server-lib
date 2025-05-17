@@ -1,8 +1,8 @@
-const { LLMClient } = require('../llm-client');
-const { ResponseSerializer } = require('../response-serializer');
-const OpenAI = require('openai');
-const fs = require('fs');
-const logger = require('../utils/logger');
+import { LLMClient } from '../llm-client';
+import { ResponseSerializer } from '../response-serializer';
+import OpenAI from 'openai';
+import fs from 'fs';
+import logger from '../utils/logger';
 
 class OpenAIClient extends LLMClient {
   constructor(token) {

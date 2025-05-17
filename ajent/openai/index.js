@@ -1,5 +1,3 @@
-const { OpenAIClient } = require('./openai-client');
+import { OpenAIClient } from './openai-client';
 
-module.exports = {
-  OpenAIClient
-};
+export { OpenAIClient };

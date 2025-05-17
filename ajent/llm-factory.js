@@ -1,4 +1,4 @@
-const { OpenAIClient } = require('./openai');
+import { OpenAIClient } from './openai';
 
 class LLMFactory {
   static createClient(llmName, llmToken) {
@@ -10,4 +10,4 @@ class LLMFactory {
   }
 }
 
-module.exports = { LLMFactory };
+export { LLMFactory };
