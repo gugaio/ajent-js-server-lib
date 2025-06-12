@@ -5,15 +5,22 @@ const fs = require('fs');
 const logger = require('../utils/logger');
 
 class OpenAIClient extends LLMClient {
-  constructor(token) {
-    super();
-    this._client = new OpenAI({ apiKey: token });
+  constructor(config) {
+    super(config);
+
   }
+
+  validateConfig() {
+    if(!this.config || !this.config.token) {
+      throw new Error("OpenAIClient requires a valid configuration with an API token.");
+    }
+      this._client = new OpenAI({ apiKey: this.config.token });
+    }
 
   async send(messages, tools, model) {
     try {
       const response = await this._client.chat.completions.create({
-        model: model,
+        model: model || this.config.model || "gpt-4.1",
         messages: messages,
         tools: tools
       });
