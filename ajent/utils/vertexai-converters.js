@@ -1,8 +1,5 @@
 function convertTools(tools) {
   if (!tools || tools.length === 0) return [];
-
-  console.log('Converting tools for Vertex AI:', tools);
-
   return [{
     function_declarations: tools.map(tool => ({
       name: tool.function.name,
