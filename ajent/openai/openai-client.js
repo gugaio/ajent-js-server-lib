@@ -11,10 +11,10 @@ class OpenAIClient extends LLMClient {
   }
 
   validateConfig() {
-    if(!this.config || !this.config.token) {
+    if(!this.config || !this.config.llmToken) {
       throw new Error("OpenAIClient requires a valid configuration with an API token.");
     }
-      this._client = new OpenAI({ apiKey: this.config.token });
+      this._client = new OpenAI({ apiKey: this.config.llmToken });
     }
 
   async send(messages, tools, model) {
