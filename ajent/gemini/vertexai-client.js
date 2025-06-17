@@ -34,26 +34,33 @@ class VertexAIClient extends LLMClient {
   }
 
   async stream(messages, tools, model) {
-    try {
-      const request = this._buildRequest(messages, tools);
-      const stream = await this.model.generateContentStream(request);
+  try {
+    const request = this._buildRequest(messages, tools);
+    const streamResponse = await this.model.generateContentStream(request);
+    
+    console.log('DEBUG VertexAI stream typeof:', typeof streamResponse);
+    console.log('DEBUG VertexAI stream keys:', Object.keys(streamResponse));
+    console.log('DEBUG VertexAI stream prototype:', Object.getPrototypeOf(streamResponse));
 
-      // Initialize variables to accumulate the response
-      const currentToolCalls = {};
-      let currentContent = "";
-      let currentToolCallId = null;
+    // Initialize variables to accumulate the response
+    const currentToolCalls = {};
+    let currentContent = "";
+    let currentToolCallId = null;
 
-      // Return an async generator
-      return {
-        [Symbol.asyncIterator]: async function* () {
-          try {
-            for await (const chunk of stream) {
+    // Return an async iterator that processes the Vertex AI stream
+    return {
+      [Symbol.asyncIterator]: async function* () {
+        try {
+          // Vertex AI returns an async iterable stream
+          for await (const chunk of streamResponse.stream) {
+            try {
               const candidate = chunk.candidates?.[0];
-              const parts = candidate?.content?.parts || [];
+              if (!candidate) continue;
 
-              // Process each part in the chunk
+              const parts = candidate?.content?.parts || [];
+              
               for (const part of parts) {
-                // Handle content
+                // Handle text content
                 if (part.text) {
                   currentContent += part.text;
                   yield {
@@ -61,36 +68,29 @@ class VertexAIClient extends LLMClient {
                     content: part.text
                   };
                 }
-
-                // Handle tool calls
+                
+                // Handle function calls
                 if (part.functionCall) {
-                  currentToolCallId = part.functionCall.name;
-                  console.log(`Tool call id: ${currentToolCallId}`);
+                  const functionCall = part.functionCall;
+                  currentToolCallId = functionCall.name + '_' + Date.now(); // Generate unique ID
                   
-                  if (!currentToolCalls[currentToolCallId]) {
-                    console.log(`Tool call not found, creating new one. Tool call id: ${currentToolCallId}`);
-                    console.log(`Existing tool calls: ${JSON.stringify(currentToolCalls)}`);
-                    currentToolCalls[currentToolCallId] = {
-                      id: currentToolCallId,
-                      type: "function",
-                      function: { 
-                        name: part.functionCall.name, 
-                        arguments: JSON.stringify(part.functionCall.args || {})
-                      }
-                    };
-                  } else {
-                    // Update existing tool call (if needed for incremental arguments)
-                    currentToolCalls[currentToolCallId].function.arguments = JSON.stringify(part.functionCall.args || {});
-                  }
-
+                  currentToolCalls[currentToolCallId] = {
+                    id: currentToolCallId,
+                    type: "function",
+                    function: {
+                      name: functionCall.name,
+                      arguments: JSON.stringify(functionCall.args || {})
+                    }
+                  };
+                  
                   yield {
                     type: "tool_call",
                     tool_call: currentToolCalls[currentToolCallId]
                   };
                 }
               }
-
-              // Check for finish reason
+              
+              // Handle finish reason
               const finishReason = candidate?.finishReason;
               if (finishReason) {
                 yield {
@@ -99,23 +99,40 @@ class VertexAIClient extends LLMClient {
                   final_content: currentContent,
                   final_tool_calls: Object.values(currentToolCalls).length > 0 ? Object.values(currentToolCalls) : null
                 };
+                break; // Exit the loop when finished
               }
+            } catch (chunkError) {
+              console.error(`Error processing chunk: ${chunkError}`);
+              yield { 
+                type: "error", 
+                error: "Chunk processing error", 
+                details: chunkError.message 
+              };
             }
-          } catch (error) {
-            logger.error(`Error in stream generator: ${error}`);
-            yield { error: "Stream error", details: error.message };
           }
+        } catch (streamError) {
+          console.error(`Error in stream iteration: ${streamError}`);
+          yield { 
+            type: "error", 
+            error: "Stream iteration error", 
+            details: streamError.message 
+          };
         }
-      };
-    } catch (error) {
-      logger.error(`Error initializing stream: ${error}`);
-      return {
-        [Symbol.asyncIterator]: async function* () {
-          yield { error: "Stream initialization error", details: error.message };
-        }
-      };
-    }
+      }
+    };
+  } catch (error) {
+    console.error(`Error initializing stream: ${error}`);
+    return {
+      [Symbol.asyncIterator]: async function* () {
+        yield { 
+          type: "error", 
+          error: "Stream initialization error", 
+          details: error.message 
+        };
+      }
+    };
   }
+}
 
 
   _buildRequest(messages, tools) {
