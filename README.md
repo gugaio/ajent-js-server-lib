@@ -73,7 +73,7 @@ All endpoints are mounted under `/agent`:
 You can pass hooks to customize request/response/error handling:
 
 ```js
-const server = createLlmServer({
+const server = createLLMServer({
   beforeRequest: (req, res) => { /* ... */ },
   afterResponse: (req, response) => { /* ... */ },
   errorHandler: (err, req, res) => { /* ... */ }
