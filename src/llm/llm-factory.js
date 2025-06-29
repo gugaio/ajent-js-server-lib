@@ -1,5 +1,5 @@
-const { OpenAIClient } = require('./openai');
-const { VertexAIClient } = require('./gemini');
+const { OpenAIClient } = require('../openai');
+const { VertexAIClient } = require('../gemini');
 
 class LLMFactory {
   static createClient(config) {

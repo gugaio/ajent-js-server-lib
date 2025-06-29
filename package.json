@@ -1,10 +1,10 @@
 {
   "name": "ajent-api",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Library to create a LLM Api with function calling",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "exports": {
-    ".": "./lib/index.js"
+    ".": "./src/index.js"
   },
   "scripts": {
     "test": "jest",
@@ -21,14 +21,19 @@
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.27.7",
+    "@babel/preset-env": "^7.27.2",
     "@eslint/js": "^9.26.0",
+    "babel-jest": "^30.0.2",
     "eslint": "^9.26.0",
     "globals": "^16.1.0",
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+     "dotenv": "17.0.0",
+     "axios": "^1.6.0"
   },
   "peerDependencies": {
-    "openai": "^4.0.0",
-    "@google-cloud/vertexai": "^1.10.0"
+    "@google-cloud/vertexai": "^1.10.0",
+    "openai": "^4.0.0"
   },
   "engines": {
     "node": ">=14.0.0"

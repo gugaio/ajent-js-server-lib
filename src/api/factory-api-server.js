@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { LLMFactory } = require('../ajent/llm-factory');
+const { LLMFactory } = require('../llm/llm-factory');
 
 /**
  * Creates and configures an Express API server with routes for LLM interaction,
@@ -19,7 +19,7 @@ const { LLMFactory } = require('../ajent/llm-factory');
  * @param {Function} [options.errorHandler] - Custom error handler
  * @returns {Object} Express app instance and server control methods
  */
-function createLlmServer(options = {}) {
+function createLLMServer(options = {}) {
   const {
     app: existingApp,
     port = 3000,
@@ -237,4 +237,4 @@ function createLlmServer(options = {}) {
   };
 }
 
-module.exports = createLlmServer;
+module.exports = createLLMServer;

@@ -1,5 +1,5 @@
-const { LLMClient } = require('../llm-client');
-const { ResponseSerializer } = require('../response-serializer');
+const { LLMClient } = require('../llm/llm-client');
+const { ResponseSerializer } = require('../llm/response-serializer');
 const OpenAI = require('openai');
 const fs = require('fs');
 const logger = require('../utils/logger');
@@ -17,7 +17,7 @@ class OpenAIClient extends LLMClient {
       this._client = new OpenAI({ apiKey: this.config.llmToken });
     }
 
-  async send(messages, tools, model) {
+  async _sendImplementation(messages, tools, model) {
     try {
       const response = await this._client.chat.completions.create({
         model: model || this.config.model || "gpt-4.1",
@@ -28,24 +28,24 @@ class OpenAIClient extends LLMClient {
       const message = response.choices[0].message;
       return this.serializeResponse(message);
     } catch (error) {
-      if (error instanceof OpenAI.APIError) {
+      if (error.name === 'APIError') {
         logger.error(`OpenAI API error: ${error}`);
-        return { error: "OpenAI API error", details: error.message };
-      } else if (error instanceof OpenAI.RateLimitError) {
+        throw new Error(`OpenAI API error: ${error.message}`, error.code);
+      } else if (error.name === 'RateLimitError') {
         logger.warn("Rate limit exceeded. Please slow down your requests.");
-        return { error: "Rate limit exceeded", details: error.message };
-      } else if (error instanceof OpenAI.InvalidRequestError) {
+        throw new Error(`Rate limit exceeded: ${error.message}`, error.code);
+      } else if (error.name === 'InvalidRequestError') {
         logger.error(`Invalid request: ${error}`);
-        return { error: "Invalid request", details: error.message };
-      } else if (error instanceof OpenAI.AuthenticationError) {
+        throw new Error(`Invalid request: ${error.message}`, error.code);
+      } else if (error.name === 'AuthenticationError') {
         logger.error(`Authentication error: ${error}`);
-        return { error: "Authentication error", details: error.message };
-      } else if (error instanceof OpenAI.OpenAIError) {
+        throw new Error(`Authentication error: ${error.message}`, error.code);
+      } else if (error.name === 'OpenAIError') {
         logger.error(`General OpenAI error: ${error}`);
-        return { error: "OpenAI error", details: error.message };
+        throw new Error(`OpenAI error: ${error.message}`, error.code);
       } else {
         logger.error(`Unexpected error occurred: ${error}`);
-        return { error: "Unexpected error", details: error.message };
+        throw new Error(`Unexpected error: ${error.message}`, error.code);
       }
     }
   }
@@ -54,7 +54,7 @@ class OpenAIClient extends LLMClient {
     return ResponseSerializer.serializeMessage(response);
   }
 
-  async stream(messages, tools, model) {
+  async _streamImplementation(messages, tools, model) {
     try {
       const stream = await this._client.chat.completions.create({
         model: model,
@@ -133,7 +133,7 @@ class OpenAIClient extends LLMClient {
             }
           } catch (error) {
             logger.error(`Error in stream generator: ${error}`);
-            yield { error: "Stream error", details: error.message };
+            yield { error: "Stream error", details: error.message, status: error.status || error.code, retryable: this._isRetryableErrorWithCustom ? this._isRetryableErrorWithCustom(error) : false };
           }
         }
       };
@@ -141,7 +141,7 @@ class OpenAIClient extends LLMClient {
       logger.error(`Error initializing stream: ${error}`);
       return {
         [Symbol.asyncIterator]: async function* () {
-          yield { error: "Stream initialization error", details: error.message };
+          yield { error: "Stream initialization error", details: error.message, status: error.status || error.code };
         }
       };
     }

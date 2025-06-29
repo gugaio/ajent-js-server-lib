@@ -1,40 +1,42 @@
-const { LLMClient } = require('../llm-client');
-const { ResponseSerializer } = require('../response-serializer');
+const { LLMClient } = require('../llm/llm-client');
+const { ResponseSerializer } = require('../llm/response-serializer');
 const logger = require('../utils/logger');
 const { VertexAI } = require('@google-cloud/vertexai');
 const { convertTools, convertMessages } = require('../utils/vertexai-converters');
 
-// process.env.GOOGLE_APPLICATION_CREDENTIALS  is required for Google Cloud authentication
+// process.env.GOOGLE_APPLICATION_CREDENTIALS is required for Google Cloud authentication
 
 class VertexAIClient extends LLMClient {
   constructor(config) {
     super(config);
     console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+    
+    // Pode adicionar padrões específicos do Vertex AI para retry
+    this.addRetryableErrorPatterns([
+      'vertex ai quota exceeded',
+      'gemini rate limit',
+      'resource exhausted'
+    ]);
   }
 
   validateConfig() {
-      if(!this.config || !this.config.llmProject) {
-        throw new Error("VertexAIClient requires a valid configuration with a project ID.");
-      }
-      this._client = new VertexAI({ project: this.config.llmProject, location: this.config.llmLocation });
-      this.model = this._client.getGenerativeModel({ model: this.config.llmModel });
-  }
-
-  async send(messages, tools) {
-    try {
-      const request = this._buildRequest(messages, tools);
-      const response = await this.model.generateContent(request);
-      const result = this._parseResponse(response);
-
-      return this.serializeResponse(result);
-    } catch (error) {
-      logger.error(`Vertex AI error: ${error}`);
-      return { error: 'Vertex AI error', details: error.message };
+    if(!this.config || !this.config.llmProject) {
+      throw new Error("VertexAIClient requires a valid configuration with a project ID.");
     }
+    this._client = new VertexAI({ project: this.config.llmProject, location: this.config.llmLocation });
+    this.model = this._client.getGenerativeModel({ model: this.config.llmModel });
   }
 
-  async stream(messages, tools, model) {
-  try {
+  // Implementação real do send (sem retry - isso fica na classe base)
+  async _sendImplementation(messages, tools) {
+    const request = this._buildRequest(messages, tools);
+    const response = await this.model.generateContent(request);
+    const result = this._parseResponse(response);
+    return this.serializeResponse(result);
+  }
+
+  // Implementação real do stream (sem retry - isso fica na classe base)
+  async _streamImplementation(messages, tools, model) {
     const request = this._buildRequest(messages, tools);
     const streamResponse = await this.model.generateContentStream(request);
     
@@ -106,7 +108,8 @@ class VertexAIClient extends LLMClient {
               yield { 
                 type: "error", 
                 error: "Chunk processing error", 
-                details: chunkError.message 
+                details: chunkError.message,
+                retryable: this._isRetryableErrorWithCustom ? this._isRetryableErrorWithCustom(chunkError) : false
               };
             }
           }
@@ -115,25 +118,19 @@ class VertexAIClient extends LLMClient {
           yield { 
             type: "error", 
             error: "Stream iteration error", 
-            details: streamError.message 
+            details: streamError.message,
+            status: streamError.status || streamError.code,
+            retryable: this._isRetryableErrorWithCustom ? this._isRetryableErrorWithCustom(streamError) : false
           };
         }
-      }
-    };
-  } catch (error) {
-    console.error(`Error initializing stream: ${error}`);
-    return {
-      [Symbol.asyncIterator]: async function* () {
-        yield { 
-          type: "error", 
-          error: "Stream initialization error", 
-          details: error.message 
-        };
-      }
+      }.bind(this)
     };
   }
-}
 
+  // Implementação do STT (se necessário)
+  async _sttImplementation(audioFilePath) {
+    throw new Error('STT not implemented for VertexAI');
+  }
 
   _buildRequest(messages, tools) {
     const request = {
